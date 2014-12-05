@@ -1,24 +1,44 @@
 require 'sinatra'
 require 'sinatra/reloader'
+require 'sinatra/activerecord'
 
 require_relative 'models/contact'
 
-before do
-  contact_attributes = [
-    { first_name: 'Eric', last_name: 'Kelly', phone_number: '1234567890' },
-    { first_name: 'Adam', last_name: 'Sheehan', phone_number: '1234567890' },
-    { first_name: 'Dan', last_name: 'Pickett', phone_number: '1234567890' },
-    { first_name: 'Evan', last_name: 'Charles', phone_number: '1234567890' },
-    { first_name: 'Faizaan', last_name: 'Shamsi', phone_number: '1234567890' },
-    { first_name: 'Helen', last_name: 'Hood', phone_number: '1234567890' },
-    { first_name: 'Corinne', last_name: 'Babel', phone_number: '1234567890' }
-  ]
+# Client.where("orders_count = ?", params[:orders])
 
-  @contacts = contact_attributes.map do |attr|
-    Contact.new(attr)
-  end
+get "/" do
+  redirect "/contacts"
 end
 
-get '/' do
+get '/contacts' do
+  # if query param exists, set @search, else @search is empty
+  @search = params[:query] || ""
+  # if the page param exists, set @page, else @page is 1
+  @page = params[:page] || 1
+  @page = @page.to_i
+  @page_offset = (@page.to_i - 1) * 3
+  if !@search.empty?
+    @contacts = Contact.where("first_name = ? OR last_name = ?",
+                @search.capitalize, @search.capitalize).limit(3).offset(@page_offset)
+  else
+    @contacts = Contact.all.limit(3).offset(@page_offset)
+  end
   erb :index
+end
+
+get "/contacts/new" do
+  erb :new
+end
+
+get "/contacts/:id" do
+  @contact = Contact.find(params[:id])
+  erb :show
+end
+
+post "/contacts" do
+  first_name = params[:first_name]
+  last_name = params[:last_name]
+  phone_number = params[:phone_number]
+  Contact.create(first_name: first_name, last_name: last_name, phone_number: phone_number)
+  redirect "/"
 end
